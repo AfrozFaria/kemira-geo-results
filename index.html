@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEO Audit Prototype: how AI describes Kemira</title>
+<meta name="description" content="Live prototype showing how an AI assistant answers questions about a company, next to a reference fact sheet.">
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --muted:#5a6270; --card:#f3f5f8; --line:#d9dee6; --accent:#0b6b8a; --warn:#9a5b00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12161c; --fg:#eceff3; --muted:#9aa4b2; --card:#1b212a; --line:#2c3541; --accent:#5cc2e0; --warn:#e0a84a; }
+  }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:780px; margin:0 auto; padding:32px 20px 64px; }
+  h1 { font-size:1.7rem; line-height:1.25; margin:0 0 8px; }
+  h2 { font-size:1.2rem; margin:36px 0 10px; }
+  .sub { color:var(--muted); margin:0 0 6px; }
+  .tiny { color:var(--muted); font-size:.85rem; margin:0 0 20px; }
+  .notice { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+            padding:12px 16px; border-radius:6px; font-size:.95rem; }
+  .qa { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px 18px; margin:14px 0; }
+  .q { font-weight:600; margin:0 0 8px; }
+  .label { font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:12px 0 2px; }
+  .answer { white-space:pre-wrap; margin:0; }
+  .ref { margin:0; border-left:3px solid var(--warn); padding-left:10px; }
+  .meta { font-size:.8rem; color:var(--muted); margin-top:10px; }
+  .loading { color:var(--muted); font-style:italic; }
+  .error { color:var(--warn); }
+  button { font:inherit; padding:4px 12px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--fg); cursor:pointer; }
+  a { color:var(--accent); }
+  footer { margin-top:40px; color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>How does an AI assistant describe Kemira?</h1>
+<p class="sub">Live answers from the OpenAI API, shown next to a reference fact sheet.</p>
+<p class="tiny">Independent prototype, not affiliated with Kemira. Full notice at the bottom.</p>
+
+<h2>Assistant answers</h2>
+<div id="results"></div>
+
+<h2>What the website shows</h2>
+<div class="qa">
+  <p class="answer">Four kemira.com pages were inspected (homepage, company, products and services, a sustainability page).
+  Each has structured data (JSON-LD), but only generic types such as WebPage, WebSite and BreadcrumbList.
+  No Organization entity and no FAQPage markup were found in the JSON-LD of those pages.</p>
+  <p class="meta">Small sample; only JSON-LD was checked. [CHECK against kemira.com before sharing widely]</p>
+</div>
+
+<h2>Links</h2>
+<ul>
+  <li><a href="YOUR_GITHUB_REPO_URL">Source code on GitHub</a></li>
+</ul>
+
+<p class="notice" style="margin-top:40px"><strong>Independent prototype by Faria.</strong> Not affiliated with or endorsed by Kemira.
+The answers above come from a plain language model (no web search) and may be wrong or outdated.
+The reference lines are a hand-checked fact sheet, not an automatic verdict. Answers are refreshed at most once a day.</p>
+
+<footer>Built by Mir Fatema Afroz Faria, October 2026. Public information only. No Kemira logo or proprietary material is used.</footer>
+
+</main>
+
+<script>
+const results = document.getElementById("results");
+
+function makeCard() {
+  const card = document.createElement("div");
+  card.className = "qa";
+  results.appendChild(card);
+  return card;
+}
+
+// textContent everywhere, so model output can never inject HTML.
+function fillCard(card, d) {
+  card.innerHTML = "";
+  const q = document.createElement("p"); q.className = "q"; q.textContent = d.question;
+  const l1 = document.createElement("div"); l1.className = "label"; l1.textContent = "Assistant answer";
+  const a = document.createElement("p"); a.className = "answer"; a.textContent = d.answer;
+  const l2 = document.createElement("div"); l2.className = "label"; l2.textContent = "Reference (fact sheet)";
+  const r = document.createElement("p"); r.className = "ref"; r.textContent = d.reference;
+  const m = document.createElement("div"); m.className = "meta";
+  m.textContent = "Generated " + new Date(d.generatedAt).toLocaleString();
+  card.append(q, l1, a, l2, r, m);
+}
+
+function showError(card, i) {
+  card.innerHTML = "";
+  const p = document.createElement("p"); p.className = "error";
+  p.textContent = "Could not load this answer. ";
+  const b = document.createElement("button"); b.textContent = "Retry";
+  b.onclick = () => load(i, card);
+  p.appendChild(b);
+  card.appendChild(p);
+}
+
+async function load(i, card) {
+  card.innerHTML = '<p class="loading">Asking the assistant…</p>';
+  try {
+    const res = await fetch("/api/ask?i=" + i);
+    if (!res.ok) throw new Error("bad response");
+    const d = await res.json();
+    fillCard(card, d);
+    return d.total;
+  } catch (e) {
+    showError(card, i);
+    return null;
+  }
+}
+
+(async function run() {
+  let total = 5, i = 0;
+  while (i < total) {
+    const card = makeCard();
+    const t = await load(i, card);   // one at a time: answers appear as they arrive
+    if (t) total = t;
+    i++;
+  }
+})();
+</script>
+</body>
+</html>
