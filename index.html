@@ -51,7 +51,7 @@
 
 <h2>Links</h2>
 <ul>
-  <li><a href="YOUR_GITHUB_REPO_URL">Source code on GitHub</a></li>
+  <li><a href="https://github.com/AfrozFaria/kemira-geo-results">Source code on GitHub</a></li>
 </ul>
 
 <p class="notice" style="margin-top:40px"><strong>Independent prototype by Faria.</strong> Not affiliated with or endorsed by Kemira.
@@ -72,7 +72,7 @@ function makeCard() {
   return card;
 }
 
-// textContent everywhere, so model output can never inject HTML.
+
 function fillCard(card, d) {
   card.innerHTML = "";
   const q = document.createElement("p"); q.className = "q"; q.textContent = d.question;
@@ -113,7 +113,7 @@ async function load(i, card) {
   let total = 5, i = 0;
   while (i < total) {
     const card = makeCard();
-    const t = await load(i, card);   // one at a time: answers appear as they arrive
+    const t = await load(i, card);  
     if (t) total = t;
     i++;
   }
